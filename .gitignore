@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# Data & DB (too large for git)
+.db/
+data/alfworld/
+data/fever/
+data/pddl/
+data/ScreenSpot-Pro/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Misc
+command.txt
+*.o

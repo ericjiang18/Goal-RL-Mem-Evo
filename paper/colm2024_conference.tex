@@ -1,0 +1,340 @@
+
+\documentclass{article} % For LaTeX2e
+\usepackage{colm2024_conference}
+
+
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+
+
+\usepackage{lineno}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage[most]{tcolorbox}
+\usepackage{caption}
+\usepackage{xspace}
+
+\definecolor{darkblue}{rgb}{0, 0, 0.5}
+\hypersetup{colorlinks=true, citecolor=darkblue, linkcolor=darkblue, urlcolor=darkblue}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{colortbl}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+\usepackage[capitalise,noabbrev]{cleveref}
+\usepackage{mathtools}
+\usepackage{siunitx}    
+\usepackage{makecell,threeparttable}
+\usepackage{pifont}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{rotating}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{etoc}
+\usepackage{listings}
+\usepackage{natbib}
+\usepackage{soul}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% TikZ
+\usepackage{tikz}
+\usetikzlibrary{shadows, arrows.meta, positioning, shapes.geometric, calc, fit, backgrounds, decorations.pathreplacing}
+\usepackage[edges]{forest}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\crefname{section}{Section}{Sections}
+\Crefname{section}{Section}{Sections}
+\crefrangelabelformat{section}{#3#1--#4#2}
+
+\crefname{subsection}{\S}{\S}
+\Crefname{subsection}{\S}{\S}
+
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+\newcommand{\eg}{\textit{e.g.,}}
+
+\definecolor{lightcoral}{rgb}{0.94, 0.5, 0.5}
+\definecolor{darkpastelgreen}{rgb}{0.01, 0.75, 0.24}
+\definecolor{hidden-red}{RGB}{205, 44, 36}
+\definecolor{hidden-blue}{RGB}{194,232,247}
+\definecolor{hidden-orange}{RGB}{243,202,120}
+\definecolor{hidden-green}{RGB}{34,139,34}
+\definecolor{hidden-pink}{RGB}{255,245,247}
+\definecolor{hidden-black}{RGB}{20,68,106}
+\definecolor{purple}{RGB}{144,153,196}
+\definecolor{yellow}{RGB}{255,228,123}
+\definecolor{hidden-yellow}{RGB}{255,248,203}
+\definecolor{tkcolor}{RGB}{224,223,255}
+\definecolor{myred}{RGB}{247,226,231}
+\definecolor{myblue}{RGB}{216,226,234}
+\definecolor{myyellow}{RGB}{252,238,221}
+\definecolor{mypurple}{RGB}{233,229,241}
+\definecolor{mygreen}{RGB}{204,231,207}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Custom commands
+\newcommand{\goalrl}{\textsc{Goal-RL Memory}\xspace}
+\newcommand{\Qfunc}{Q(s,a,g)}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+
+
+\title{Goal-RL Memory: Goal-Conditioned Reinforcement Learning \\with Skill Discovery and Evolving Experience \\for LLM-Based Multi-Agent Systems}
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \colmfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
+
+\author{Antiquus S.~Hippocampus, Natalia Cerebro \& Amelie P. Amygdale \thanks{ Use footnote for providing further information
+about author (webpage, alternative address)---\emph{not} for acknowledging
+funding agencies.  Funding acknowledgements go at the end of the paper.} \\
+Department of Computer Science\\
+Cranberry-Lemon University\\
+Pittsburgh, PA 15213, USA \\
+\texttt{\{hippo,brain,jen\}@cs.cranberry-lemon.edu} \\
+\And
+Ji Q. Ren \& Yevgeny LeNet \\
+Department of Computational Neuroscience \\
+University of the Witwatersrand \\
+Joburg, South Africa \\
+\texttt{\{robot,net\}@wits.ac.za} \\
+\AND
+Coauthor \\
+Affiliation \\
+Address \\
+\texttt{email}
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+% \colmfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+Large Language Model (LLM)-based agents have shown remarkable capabilities in interactive decision-making tasks, yet they struggle to systematically learn from past experience, discover reusable behavioral patterns, and adapt their strategies across episodes.
+In this paper, we present \goalrl, a framework that integrates goal-conditioned reinforcement learning, automatic skill discovery, and evolving experience into a multi-agent architecture for embodied decision-making.
+Our system employs a planner--executor--critic team that leverages a goal-conditioned Q-function over action categories to provide soft policy guidance to LLM executors.
+By applying Hindsight Experience Replay (HER) to relabel failed trajectories with achieved goals, the agent learns from every episode regardless of task success.
+A skill mining module clusters successful trajectories and synthesizes reusable macro-procedures, while an insight distillation mechanism builds a growing knowledge base from experience patterns.
+We evaluate \goalrl on ALFWorld and ScienceWorld, two challenging embodied benchmarks, demonstrating competitive performance on household manipulation and scientific experimentation tasks.
+\end{abstract}
+
+
+\section{Introduction}
+\label{sec:intro}
+
+Large Language Models (LLMs) have demonstrated impressive reasoning and planning capabilities when deployed as autonomous agents in interactive environments~\citep{yao2023react,wang2024survey,sumers2024cognitive}.
+From web browsing to code generation to embodied manipulation, LLM-based agents leverage rich world knowledge and chain-of-thought reasoning~\citep{wei2022chain} to tackle complex tasks.
+However, a fundamental limitation persists: most existing LLM agents treat each task episode as an isolated event, failing to \emph{learn systematically from experience} across episodes.
+
+Although recent works have explored skill libraries~\citep{wang2023voyager}, verbal reflections~\citep{shinn2023reflexion}, and memory mechanisms~\citep{majumder2024clin,park2023generative} to address this limitation, they remain fragmented in their approaches.
+Skill-based methods~\citep{wang2023voyager,pertsch2021accelerating} accumulate reusable behavioral patterns but lack a principled mechanism to evaluate \emph{when} and \emph{how} to deploy them.
+Memory-augmented agents~\citep{park2023generative,zhong2024memorybank} store and retrieve past experiences but rely on heuristic similarity metrics rather than value-based reasoning.
+Reflection-based methods~\citep{shinn2023reflexion} produce natural language summaries of failures, yet lack a principled mechanism to translate these reflections into quantitative policy guidance.
+Crucially, none of these approaches unify experience learning, skill reuse, and strategy adaptation under a single coherent objective.
+
+Therefore, in this paper, we introduce \goalrl, a framework that bridges the gap between classical reinforcement learning principles and LLM-based multi-agent systems.
+\goalrl operates a multi-agent team---comprising a planner, executors, and a critic---where the planner decomposes goals into subgoals, executors propose actions guided by learned Q-values, and the critic selects the best candidate.
+At its core, the framework maintains a goal-conditioned Q-function over \emph{action categories} in text-based state-action spaces, updated via temporal-difference learning with Hindsight Experience Replay (HER)~\citep{andrychowicz2017hindsight} to learn from both successful and failed trajectories.
+Complementing this, a skill mining module automatically clusters successful trajectories and synthesizes reusable macro-procedures, while an insight distillation mechanism builds a growing knowledge base from experience patterns, enabling the agent to progressively improve over time.
+
+We evaluate \goalrl on ALFWorld~\citep{shridhar2021alfworld} and ScienceWorld~\citep{wang2022scienceworld}, two challenging embodied decision-making benchmarks.
+Our results demonstrate that \goalrl achieves competitive performance, with particularly strong improvements on tasks that benefit from cross-episode value-based learning.
+
+\textbf{Contributions.} Our main contributions are:
+\begin{enumerate}[leftmargin=1.5em, itemsep=2pt]
+    \item We propose \goalrl, the first framework that integrates goal-conditioned reinforcement learning with Hindsight Experience Replay into LLM-based multi-agent systems, enabling principled value-based learning from both successful and failed trajectories in text-based environments.
+    \item We introduce an automatic skill discovery pipeline that clusters successful trajectories and uses LLM-based synthesis to extract reusable macro-procedures, combined with an insight distillation mechanism that continuously builds a growing knowledge base from experience patterns.
+    \item We demonstrate the effectiveness of \goalrl on ALFWorld and ScienceWorld benchmarks, achieving competitive results across diverse task types including household manipulation and scientific experimentation.
+\end{enumerate}
+
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Agentic Frameworks and Memory.}
+The deployment of LLMs as autonomous agents has received growing attention.
+ReAct~\citep{yao2023react} interleaves reasoning traces with environment actions, while chain-of-thought prompting~\citep{wei2022chain} enhances multi-step reasoning.
+AutoGen~\citep{wu2023autogen} and MetaGPT~\citep{hong2024metagpt} introduce multi-agent conversation frameworks for collaborative problem solving.
+AgentBench~\citep{liu2024agentbench} and AgentGym~\citep{xi2024agentgym} provide evaluation platforms for LLM agents across diverse environments.
+While these systems demonstrate strong task completion, they generally lack mechanisms for systematic cross-episode learning from experience.
+Memory is critical for LLM agent performance.
+Generative Agents~\citep{park2023generative} introduced a memory stream with retrieval, reflection, and planning for social simulation.
+MemoryBank~\citep{zhong2024memorybank} stores and retrieves long-term experiences for enhanced dialogue.
+Reflexion~\citep{shinn2023reflexion} pioneered ``verbal reinforcement learning,'' where agents store natural language reflections from failed attempts.
+CLIN~\citep{majumder2024clin} builds a continually growing memory of task-specific causal abstractions.
+Unlike these approaches, \goalrl provides a principled value-based learning framework with formal convergence guarantees, going beyond verbal reflection to structured goal-conditioned learning.
+
+\textbf{Skills and Evolving Experience.}
+Voyager~\citep{wang2023voyager} maintains an ever-growing code-based skill library for Minecraft exploration, demonstrating the power of compositional skill accumulation.
+Skill priors~\citep{pertsch2021accelerating} and motor program discovery~\citep{shankar2020discovering} extract reusable behavioral primitives from demonstration data in robotics.
+KnowAgent~\citep{zhu2024knowagent} augments LLM agents with action knowledge for improved planning.
+CLIN~\citep{majumder2024clin} continually updates causal abstractions from experience, creating an evolving knowledge base.
+Our approach differs by \emph{jointly} learning a goal-conditioned value function and discovering skills from experience: the skill mining module automatically clusters successful trajectories and uses LLM-based synthesis to extract generalizable procedures without requiring pre-defined templates, while insights distilled from experience patterns provide evolving strategic guidance.
+
+\textbf{Goal-Conditioned Reinforcement Learning.}
+Universal Value Function Approximators (UVFAs)~\citep{schaul2015universal} generalize value functions across goals.
+Hindsight Experience Replay (HER)~\citep{andrychowicz2017hindsight} revolutionized sparse-reward learning by relabeling failed trajectories with achieved goals.
+Hierarchical goal-conditioned RL~\citep{nachum2018data} decomposes long-horizon tasks into subgoal sequences.
+While these methods have been extensively studied in continuous control, their application to LLM-based agents remains largely unexplored.
+\goalrl bridges this gap by adapting goal-conditioned Q-learning and HER to the text-based state-action space of LLM agents, where states are natural language observations and actions are generated text commands.
+
+
+\section{Methodology}
+\label{sec:method}
+
+We present \goalrl, a framework that unifies goal-conditioned reinforcement learning with Hindsight Experience Replay, automatic skill discovery, and evolving experience into a multi-agent architecture for embodied decision-making.
+\Cref{fig:overview} illustrates the overall architecture.
+
+\subsection{Problem Formulation}
+\label{sec:formulation}
+
+We model the embodied decision-making task as a \emph{Goal-conditioned Markov Decision Process} (Goal-MDP) $\mathcal{M} = (\mathcal{S}, \mathcal{A}, \mathcal{G}, T, R, \gamma)$, where $\mathcal{S}$ is the state space (natural language observations), $\mathcal{A}$ is the action space (text commands), $\mathcal{G}$ is the goal space, $T: \mathcal{S} \times \mathcal{A} \to \mathcal{S}$ is the transition function, $R: \mathcal{S} \times \mathcal{A} \times \mathcal{G} \to \mathbb{R}$ is the goal-conditioned reward, and $\gamma \in (0,1)$ is the discount factor.
+
+\subsection{Multi-Agent System}
+\label{sec:mas}
+
+\goalrl employs a multi-agent team consisting of a \emph{planner}, multiple \emph{executors}, and a \emph{critic}.
+
+\textbf{Agent Roles.}
+At each decision step, the planner decomposes the current goal into an immediate subgoal conditioned on the current state and retrieved experience.
+The executors independently propose candidate actions given the subgoal, the current observation, and policy suggestions from the Goal RL module (\Cref{sec:goal_rl}).
+The critic evaluates proposed actions and selects the most promising one for execution.
+
+\textbf{Cross-Episode Memory Retrieval.}
+Before each episode, the memory module retrieves successful trajectory demonstrations from past episodes that are semantically similar to the current task goal.
+These demonstrations are formatted as few-shot examples and prepended to the agent prompts, providing concrete action patterns the agents can follow.
+Additionally, distilled insights from past experience (\Cref{sec:evolve}) are injected into the context, giving agents access to an evolving knowledge base that grows with each completed episode.
+
+\subsection{Goal-Conditioned Reinforcement Learning}
+\label{sec:goal_rl}
+
+The central learning mechanism of \goalrl is a goal-conditioned Q-function $Q(s, a, g)$ that estimates the expected return of taking action $a$ in state $s$ when pursuing goal $g$.
+
+\textbf{Q-Learning with Action Abstraction.}
+Since the text-based action space is combinatorially large, we maintain Q-values over \emph{action categories} (e.g., \texttt{open}, \texttt{pick up}, \texttt{teleport}, \texttt{focus on}) rather than full action strings.
+Given a state-goal pair $(s, g)$, the Q-function is updated via temporal-difference learning~\citep{watkins1992q}:
+\begin{equation}
+    Q(s, a_c, g) \leftarrow Q(s, a_c, g) + \alpha \left[ r + \gamma \max_{a'_c} Q(s', a'_c, g) - Q(s, a_c, g) \right],
+\end{equation}
+where $a_c$ denotes the action category and $\alpha$ is the learning rate.
+The LLM executors use Q-value rankings as soft policy guidance: the action category with the highest Q-value is suggested alongside the prompt, but the LLM retains full autonomy to override this suggestion based on its contextual reasoning.
+
+\textbf{Hindsight Experience Replay (HER).}
+A key challenge in embodied tasks is reward sparsity---most trajectories fail to achieve the target goal.
+Inspired by~\citet{andrychowicz2017hindsight}, we apply HER to relabel failed episodes.
+After each episode, we substitute the original goal $g$ with the \emph{achieved goal} $g' = \phi(s_T)$ (extracted from the terminal state), recompute rewards, and store the relabeled trajectory.
+This allows the agent to learn from every trajectory, regardless of task success:
+\begin{equation}
+    Q(s_t, a_t, g') \leftarrow Q(s_t, a_t, g') + \alpha \left[ r' + \gamma \max_{a'} Q(s_{t+1}, a', g') - Q(s_t, a_t, g') \right],
+\end{equation}
+where $r' = R(s_t, a_t, g')$ is the reward under the relabeled goal.
+
+\subsection{Automatic Skill Discovery}
+\label{sec:skills}
+
+Complementing the RL policy, \goalrl includes a skill mining module that extracts reusable behavioral procedures from successful trajectories.
+
+\textbf{Trajectory Clustering.}
+Successful trajectories are encoded using a sentence embedding model and clustered by semantic similarity.
+Each cluster represents a family of tasks solved through similar action patterns.
+
+\textbf{LLM-Based Skill Synthesis.}
+For each cluster, we prompt a language model to analyze the common action sequences and synthesize a \emph{skill}---a named, parameterized macro-procedure.
+Each skill consists of: (1) a natural language description, (2) a sequence of abstract action steps, (3) preconditions for applicability, and (4) a success rate estimate.
+At inference time, retrieved skills are injected into the executor prompts as additional context, providing structural guidance for action generation.
+
+\subsection{Evolving Experience via Insight Distillation}
+\label{sec:evolve}
+
+Beyond retrieving raw trajectory demonstrations, \goalrl distills higher-level strategic knowledge from accumulated experience.
+
+\textbf{Insight Distillation.}
+After every batch of completed tasks, the framework analyzes patterns across successful and failed trajectories and generates \emph{insights}---concise, actionable rules that capture recurring strategies and common failure modes (e.g., ``Always focus on the target object before attempting to pick it up,'' or ``Check that the substance has changed state before proceeding to the next step'').
+These insights are appended to agent prompts as part of the context, creating a growing knowledge base that improves performance over time.
+
+\textbf{Integration with Goal RL.}
+The insight distillation mechanism is complementary to the goal-conditioned Q-function (\Cref{sec:goal_rl}).
+While Q-values provide \emph{quantitative} guidance at the action-category level (e.g., preferring \texttt{focus on} over \texttt{pick up} in the current state), insights provide \emph{qualitative} strategic guidance at a higher abstraction level (e.g., ``For inclined plane experiments, test each plane separately and compare times'').
+Together, they enable the agent to improve both its low-level action selection and high-level task strategy across episodes.
+
+
+\section{Experiment}
+\label{sec:experiment}
+
+
+\begin{figure}[t]
+    \centering 
+    \includegraphics[width=0.98\linewidth]{alfworld_experiment_scenes.png}
+    \caption{\textbf{ALFWorld Environment}
+    \label{fig:alfworld}}
+\end{figure}
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Method} & \textbf{Accuracy (\%)} \\
+\midrule
+GPT-4o-mini & 37.10 \\
+MemoryBank & 49.80 \\
+MacNet & 51.49 \\
+DyLAN & 56.72 \\
+Automanual & 72.00 \\
+AutoGen & 77.61 \\
+G-Memory & 88.81 \\
+Traj-Bootstrap + DB + E-C & 93.00 \\
+Ours & 89.55 \\
+\bottomrule
+\end{tabular}
+\caption{ALFWorld success rate comparison across different agent frameworks.}
+\label{tab:alfworld_results}
+\end{table}
+
+
+\bibliography{colm2024_conference}
+\bibliographystyle{colm2024_conference}
+
+\appendix
+\section{Appendix}
+You may include other additional sections here.
+
+\end{document}

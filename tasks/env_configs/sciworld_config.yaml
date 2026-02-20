@@ -1,0 +1,11 @@
+name: sciworld
+max_steps: 40
+num_fewshots: 3
+
+# ScienceWorld specific settings
+eval_split: test        # 'train', 'dev', or 'test'
+simplification: ""      # simplification string (empty = no simplification)
+max_variations: 5       # max variations per task to evaluate
+
+general:
+  random_seed: 42

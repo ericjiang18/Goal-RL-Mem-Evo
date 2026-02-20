@@ -1,16 +1,15 @@
 from mas.mas import MetaMAS
-from .autogen import AutoGen
-from .macnet import MacNet
-from .dylan import DyLAN
+from .goal_gcn import GoalGCNMAS
 
 MAS = {
-    'autogen': AutoGen,
-    'macnet': MacNet,
-    'dylan': DyLAN
+    # Goal-conditioned MAS with GCN communication (recommended)
+    'goal-gcn': GoalGCNMAS,
+    'goalrl': GoalGCNMAS,
+    'gcn': GoalGCNMAS,
 }
 
 def get_mas(mas_type: str) -> MetaMAS:
 
     if MAS.get(mas_type) is None:
-        raise ValueError('Unsupported mas type.')
+        raise ValueError(f'Unsupported mas type: {mas_type}. Available: {list(MAS.keys())}')
     return MAS.get(mas_type)() 

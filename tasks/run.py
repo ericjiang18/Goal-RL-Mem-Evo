@@ -14,7 +14,7 @@ from mas.agents import Agent
 from mas.module_map import module_map
 from mas.reasoning import ReasoningBase
 from mas.memory import MASMemoryBase
-from mas.llm import LLMCallable, GPTChat, get_price
+from mas.llm import LLMCallable, GPTChat, QwenChat, get_price
 from mas.mas import MetaMAS
 from mas.utils import EmbeddingFunc
 
@@ -45,7 +45,10 @@ class TaskManager:
 def build_task(task: str, mas_type: str, memory_type: str, max_steps: int) -> TaskManager:
 
     with open(CONFIG.get(task).get('env_config_path')) as reader:
-        config = yaml.safe_load(reader)
+        config_content = reader.read()
+        # Expand environment variables in config (e.g., $ALFWORLD_DATA)
+        config_content = os.path.expandvars(config_content)
+        config = yaml.safe_load(config_content)
 
     env: BaseEnv = get_env(task, config, max_steps)
     recorder: BaseRecorder = get_recorder(task, working_dir=WORKING_DIR, namespace='total_task')
@@ -64,6 +67,23 @@ def build_task(task: str, mas_type: str, memory_type: str, max_steps: int) -> Ta
         mas_config=mas_config
     )   
 
+def get_llm_model(model_type: str) -> LLMCallable:
+    """
+    Get the appropriate LLM model based on model type.
+    Supports both OpenAI models and Qwen models (via Idealab API).
+    """
+    # Qwen models (use Idealab API like AgentNet)
+    qwen_models = ['qwen3-flash', 'qwen3-max', 'qwen-turbo', 'qwen-plus', 'qwen3-vl-flash']
+    
+    if model_type.lower() in qwen_models or model_type.lower().startswith('qwen'):
+        print(f"Using Qwen model: {model_type}")
+        return QwenChat(model_name=model_type, use_idealab=True)
+    else:
+        # OpenAI-compatible models
+        print(f"Using OpenAI model: {model_type}")
+        return GPTChat(model_name=model_type)
+
+
 def build_mas(
     task_manager: TaskManager,
     reasoning: str = None,
@@ -74,7 +94,8 @@ def build_mas(
     embed_func = EmbeddingFunc(CONFIG.get('embedding_model', "sentence-transformers/all-MiniLM-L6-v2")) 
     reasoning_module_type, mas_memory_module_type = module_map(reasoning, mas_memory)
 
-    llm_model: LLMCallable = GPTChat(model_name=llm_type)
+    # Use appropriate LLM based on model type
+    llm_model: LLMCallable = get_llm_model(llm_type)
     reasoning_module: ReasoningBase = reasoning_module_type(llm_model=llm_model)
     mas_memory_module: MASMemoryBase = mas_memory_module_type(
         namespace=mas_memory,
@@ -119,8 +140,8 @@ if __name__ == '__main__':
     random.seed(42)
 
     parser = argparse.ArgumentParser(description='Run tasks with specified modules.')
-    parser.add_argument('--task', type=str, choices=['alfworld', 'fever', 'pddl'])
-    parser.add_argument('--mas_type', type=str, choices=['autogen', 'macnet', 'dylan'])
+    parser.add_argument('--task', type=str, choices=['alfworld', 'fever', 'pddl', 'sciworld'])
+    parser.add_argument('--mas_type', type=str, choices=['autogen', 'macnet', 'dylan', 'goal-gcn', 'goalrl', 'gcn'])
     parser.add_argument('--mas_memory', type=str, default='none', help='Specify mas memory module')
     parser.add_argument('--reasoning', type=str, default='io', help='Specify reasoning module')
     parser.add_argument('--model', type=str, default='gpt-3.5-turbo-0125', help='Specify the LLM model type')

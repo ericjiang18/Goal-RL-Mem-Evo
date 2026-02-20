@@ -1,8 +1,7 @@
+# Core dependencies
 attr==0.3.2
 camel==0.1.2
 datasets==3.5.0
-finch_clust==0.2.0
-finchpy==0.0.1
 graphviz==0.20.3
 gym==0.26.2
 imageio==2.33.1
@@ -19,11 +18,38 @@ openai==1.78.1
 Pillow==11.2.1
 python-dotenv==1.1.0
 PyYAML==6.0.1
-PyYAML==6.0.2
 scienceworld==1.2.2
 scikit_learn==1.6.1
 seaborn==0.13.2
 sentence_transformers==3.4.1
-skimage==0.0
 tqdm==4.66.5
 wikipedia==1.4.0
+
+# Clustering for G-Memory
+finch_clust==0.2.0
+finchpy==0.0.1
+
+# ================================
+# G-Memory++ Additional Dependencies
+# ================================
+
+# GCN Retriever (optional - for learned graph retrieval)
+# Uncomment if you want to use GCN-based retrieval
+# torch>=2.0.0
+# torch_geometric>=2.4.0
+
+# Visual Encoder (optional - for GUI grounding tasks)
+# Uncomment if you want to use Qwen-VL for visual tasks
+# transformers>=4.37.0
+# accelerate>=0.25.0
+# qwen-vl-utils>=0.0.1
+
+# Note: PyTorch and PyTorch Geometric require specific installation
+# based on your CUDA version. See:
+# - https://pytorch.org/get-started/locally/
+# - https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html
+#
+# Example for CUDA 11.8:
+# pip install torch --index-url https://download.pytorch.org/whl/cu118
+# pip install torch_geometric
+# pip install pyg_lib torch_scatter torch_sparse torch_cluster -f https://data.pyg.org/whl/torch-2.0.0+cu118.html

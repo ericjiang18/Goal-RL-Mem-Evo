@@ -1,22 +1,24 @@
 from .alfworld_prompt import alfworld_solver_system_prompt, alfworld_few_shots
 from .fever_prompt import fever_solver_system_prompt, fever_few_shots
 from .pddl_prompt import pddl_prompts
+from .sciworld_prompt import sciworld_solver_system_prompt, sciworld_few_shots
 
 def get_dataset_system_prompt(task: str, task_config: dict) -> str:
     prompt_map: dict = {
         'alfworld': alfworld_solver_system_prompt,
         'fever': fever_solver_system_prompt,
-        'pddl': pddl_prompts
+        'pddl': pddl_prompts,
+        'sciworld': sciworld_solver_system_prompt,
     }
 
     if prompt_map.get(task) is None:
         raise ValueError(f'Unsupported task type: {task}')
     
-    if task != 'pddl':
-        return prompt_map.get(task)
-    else:
+    if task == 'pddl':
         task_type: str = task_config.get('game_name')
         return pddl_prompts[task_type]['instruction']
+    else:
+        return prompt_map.get(task)
         
 
 
@@ -36,6 +38,11 @@ def get_task_few_shots(dataset: str, task_config: dict, few_shots_num: int) -> l
         if task_type is None:
             raise ValueError('The task config must have the `game_name` attribute.')
         return pddl_prompts[task_type]['examples'][:few_shots_num]
+    
+    elif dataset == 'sciworld':
+        # Return generic ScienceWorld few-shot examples
+        all_shots = list(sciworld_few_shots.values())
+        return all_shots[:few_shots_num]
     
     else:
         raise ValueError(f'Unsupported dataset type: {dataset}')

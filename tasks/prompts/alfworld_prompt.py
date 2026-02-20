@@ -57,4 +57,52 @@ NOTE:
     - 9. think: xxx
 
 - You must check carefully whether your output command is consistent with the allowed commands above!!! Any output that is not among the commands listed above is not permitted!!!
+
+⚠️ CRITICAL RULES FOR "examine/look at X with desklamp" TASKS:
+1. You MUST first TAKE the object (e.g., "take alarmclock 1 from desk 1") - the object must be in your inventory!
+2. You MUST then GO TO the location where the desklamp is (e.g., "go to desk 1" if desklamp is on desk 1)
+3. You can ONLY use the desklamp when you are AT ITS LOCATION. If "use desklamp X" returns "Nothing happens", you are NOT at the desklamp's location - go there first!
+4. After taking the object and arriving at the desklamp's location, use "use desklamp X" to complete the task.
+5. Remember: "go to desk 2" means you LEFT desk 1. To use desklamp on desk 1, you must "go to desk 1" again!
+
+⚠️ CRITICAL RULES FOR "put a clean X in Y" TASKS:
+1. Find the EXACT item type mentioned in the task (e.g., if task says "cloth", find "cloth", NOT "handtowel" - they are DIFFERENT items!)
+2. TAKE the item from its location
+3. GO TO sinkbasin
+4. CLEAN the item with sinkbasin (e.g., "clean cloth 1 with sinkbasin 1")
+5. GO TO the destination (e.g., "go to countertop 1")
+6. PUT the item in/on the destination (e.g., "put cloth 1 in/on countertop 1")
+- NOTE: If "clean X with sinkbasin" returns "Nothing happens", you may have the WRONG item type!
+
+⚠️ CRITICAL RULES FOR "put X in/on Y" (ALL PUT COMMANDS):
+1. You MUST be at the destination location BEFORE you can put something there!
+2. If "put X in/on Y" returns "Nothing happens":
+   - First, try "go to Y" again to make sure you're at the right location
+   - If you're at Y and it's a container (safe, drawer, etc.), make sure it's OPEN first
+   - If it still fails after 2 attempts, try a different destination of the same type
+3. Example: To put apple in/on garbagecan 1, you must first "go to garbagecan 1", then "put apple 1 in/on garbagecan 1"
+4. If a container (safe, cabinet, drawer, fridge, microwave) is CLOSED, just use "open X" to open it - NO KEY NEEDED!
+   - Example: "open safe 1" → The safe 1 is open. Then "put vase 1 in/on safe 1"
+
+⚠️ OPENING CONTAINERS (safe, cabinet, drawer, fridge, microwave):
+- You do NOT need a key or any special item to open containers in this environment!
+- Just use "open X" directly (e.g., "open safe 1", "open cabinet 1", "open fridge 1")
+- If a container is closed, open it first, then interact with its contents.
+
+⚠️ UNDERSTANDING "Nothing happens":
+- If "go to X" returns "Nothing happens", you might ALREADY be at or near X. Try the next action anyway!
+- If "open X" returns "Nothing happens", X might already be open. Proceed with your action.
+- If "put X in/on Y" returns "Nothing happens" even though Y is open and you're there, try "go to Y" once more, then put again.
+
+⚠️ EFFICIENT SEARCH STRATEGY:
+- For common household items (vase, watch, book, cd, etc.): Check dresser, sidetable, countertop FIRST before checking many cabinets/shelves
+- For kitchen items (food, utensils): Check countertops, fridge, stoveburner, sinkbasin FIRST
+- Don't waste steps checking every shelf (1-12) one by one - check a few, then try dresser/sidetable
+
+⚠️ AVOID GETTING STUCK:
+- Do NOT repeat the same "think" statement multiple times. If something isn't working, try a different action.
+- If "use desklamp X" returns "Nothing happens", you need to "go to" the location where the desklamp is.
+- If "put X in/on Y" returns "Nothing happens" twice, try a different Y location.
+- Keep track of your current location! After "go to desk 2", you are at desk 2, NOT desk 1.
+- NEVER search more than 20 locations for one item - if not found, it might be in dresser, sidetable, or safe.
 """

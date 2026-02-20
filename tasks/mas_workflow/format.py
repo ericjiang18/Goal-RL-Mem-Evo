@@ -18,7 +18,7 @@ The following are insights gathered during the execution of similar tasks. You m
 
 {insights}
 ---
-
+{skills_section}
 ## Your Turn: Take Action!
 Use the above examples and insights as a foundation, and now work on the following task:
 {task_description}
@@ -43,16 +43,23 @@ def format_task_prompt_with_insights(
     few_shots: list[str],
     memory_few_shots: list[str],
     insights: list[str],
-    task_description: str 
+    task_description: str,
+    skills: str = "",
 ) -> str: 
     
     existing_rules_text: str = '\n'.join([f'{i}. {r}' for i, r in enumerate(insights, 1)])
     memory_few_shots: str = '\n\n'.join([f"Task {i+1}:\n{shot}" for i, shot in enumerate(memory_few_shots)])
+
+    skills_section = ""
+    if skills:
+        skills_section = f"\n{skills}\n---\n"
+
     user_prompt: str = task_solve_with_insights.format(
         few_shots='\n'.join(few_shots),
         memory_few_shots=memory_few_shots,
         task_description=task_description,   
         insights=existing_rules_text,
+        skills_section=skills_section,
     )
 
     return user_prompt

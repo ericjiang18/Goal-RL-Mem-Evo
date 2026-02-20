@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 from langchain_chroma import Chroma
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 import os
 import copy
 import re
@@ -442,10 +442,13 @@ class TaskLayer:
                 valid_nodes.append(node)
 
         X = np.vstack(embeddings)
-        fin = FINCH(metric='cosine')
 
         try: 
-            labels = fin.fit_predict(X)
+            # FINCH is a function, not a class
+            # Returns: c (NxP cluster labels), num_clust, req_c
+            c, num_clust, _ = FINCH(X, distance='cosine', verbose=False)
+            # Use the first partition (finest clustering)
+            labels = c[:, 0] if c.ndim > 1 else c
         except Exception as e:   
             print(f"FINCH clustering failed: {e}")
             labels = np.zeros(len(valid_nodes), dtype=int)

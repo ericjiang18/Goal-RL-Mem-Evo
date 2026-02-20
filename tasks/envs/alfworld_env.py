@@ -30,7 +30,8 @@ class AlfworldEnv(BaseEnv):
         max_trials: int = 50
     ): 
         self.env_config = env_config
-        self.main_env = getattr(alfworld.agents.environment, self.env_config['env']['type'])(self.env_config, train_eval=self.env_config['split'])
+        env_class = alfworld.agents.environment.get_environment(self.env_config['env']['type'])
+        self.main_env = env_class(self.env_config, train_eval=self.env_config['split'])
         
         self.max_trials: int = max_trials
         self.reset()
@@ -40,20 +41,26 @@ class AlfworldEnv(BaseEnv):
         self.env_name: str = configs['env_name']
         self.main_env.game_files = [self.gamefile]
         
-        task = configs['task']
-        
-        self.reset()
-        return self._parse_task_main(task), self._parse_task_description(task)
+        obs = self.reset()
+        return self._parse_task_main(obs), self._parse_task_description(obs)
 
     def reset(self):
 
         self.done = False
         self.env = self.main_env.init_env(batch_size=1)
-        self.env.reset()
+        obs, infos = self.env.reset()
+        return obs[0]
 
     def step(self, action: str) -> tuple[str, float, bool]:
 
         action = self.process_action(action)
+
+        # CRITICAL: intercept think actions BEFORE sending to TextWorld.
+        # TextWorld may mis-parse text inside think commands and corrupt
+        # the game state (e.g. drop inventory items).
+        if 'think:' in action:
+            return 'OK.', -1, self.done
+
         observation, reward, done, info = self.env.step([action])
         def process_ob(ob):
             if ob.startswith('You arrive at loc '):
@@ -64,10 +71,7 @@ class AlfworldEnv(BaseEnv):
 
         self.done = done[0]
 
-        if 'think:' in action:
-            observation = 'OK.' 
-            processed_reward = -1
-        elif observation == 'Nothing happens.':
+        if observation == 'Nothing happens.':
             processed_reward = -1
         else:
             processed_reward = 0 if info['won'][0] == False else 1
@@ -85,6 +89,12 @@ class AlfworldEnv(BaseEnv):
     def process_action(action: str) -> str:
         action = action.strip().replace('<', '').split('\n')[0]
         action = action.replace('>', '').replace('OK.', '').replace('OK', '').strip()
+
+        # TextWorld uses "move X to Y" instead of "put X in/on Y".
+        # Translate the LLM-generated put format to the environment's move format.
+        put_match = re.match(r'put\s+(.+?)\s+(?:in/on|in|on)\s+(.+)', action, re.IGNORECASE)
+        if put_match:
+            action = f'move {put_match.group(1).strip()} to {put_match.group(2).strip()}'
 
         return action
     
@@ -129,4 +139,3 @@ class AlfworldRecorder(BaseRecorder):
         self.log("cnts: " + str(self.counts))
     
     
-

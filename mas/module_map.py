@@ -2,6 +2,8 @@ from typing import Type
 
 from .reasoning import ReasoningBase, ReasoningIO
 from .memory import *
+from .memory.mas_memory.gmemory_plus import GMemoryPlus
+from .memory.mas_memory.goal_rl_integration import GoalRLMemory
 
 def module_map(
     reasoning: str, mas_memory: str = None
@@ -17,7 +19,15 @@ def module_map(
         'chatdev': ChatDevMASMemory,
         'generative': GenerativeMASMemory,
         'metagpt': MetaGPTMASMemory,
-        'g-memory': GMemory
+        'g-memory': GMemory,
+        # G-Memory++ with all enhancements
+        'g-memory-plus': GMemoryPlus,
+        'gmemory-plus': GMemoryPlus,
+        'gm+': GMemoryPlus,
+        # Goal RL enhanced memory
+        'goal-rl': GoalRLMemory,
+        'goal-rl-memory': GoalRLMemory,
+        'grl': GoalRLMemory,
     }
 
     if reasoning not in reasoning_map:
