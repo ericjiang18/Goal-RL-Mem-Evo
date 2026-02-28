@@ -147,7 +147,7 @@ class GoalGCNMAS(MetaMAS):
         if skills and hasattr(self.meta_memory, 'format_skills_for_prompt'):
             # Only inject 1 relevant skill to keep context clean and efficient
             skills_text = self.meta_memory.format_skills_for_prompt(skills, max_skills=1)
-            skills_text = self.meta_memory.format_skills_for_prompt(skills, max_skills=2)
+            #skills_text = self.meta_memory.format_skills_for_prompt(skills, max_skills=2)
 
         if skills_text:
             self.notify_observers(f"[Skills] Injecting {len(skills[:1])} discovered skill(s) into prompt")
