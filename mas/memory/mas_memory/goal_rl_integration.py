@@ -53,13 +53,13 @@ class GoalRLMemoryConfig(GMemoryPlusConfig):
     """Extended configuration for Goal RL Memory."""
     # Goal RL settings
     enable_goal_rl: bool = True
-    rl_buffer_capacity: int = 10000
+    rl_buffer_capacity: int = 1000
     rl_her_ratio: float = 0.8
     rl_her_strategy: str = "future"  # "future", "final", "episode", "random"
     
     # Value function
-    rl_learning_rate: float = 0.1
-    rl_discount_factor: float = 0.99
+    rl_learning_rate: float = 0.3
+    rl_discount_factor: float = 0.90
     
     # Reward shaping
     enable_reward_shaping: bool = True
@@ -68,7 +68,7 @@ class GoalRLMemoryConfig(GMemoryPlusConfig):
     
     # Policy guidance
     enable_policy_guidance: bool = True
-    action_suggestion_threshold: float = 0.3  # Min Q-value to suggest action
+    action_suggestion_threshold: float = 0.6  # Min Q-value to suggest action
     
     # Training
     rl_batch_size: int = 32
@@ -445,144 +445,144 @@ class GoalRLMemory(GMemoryPlus):
             goal=self._current_goal,
         )
     
-    # ================================ Evolving Prompts ================================
+    # ================================ Evolving Prompts (DISABLED) ================================
     
-    def get_evolved_prompt_for_role(
-        self,
-        role: str,
-        default_prompt: str = None,
-        domain: str = None,
-    ) -> Tuple[str, Any]:
-        """
-        Get an evolved prompt for an agent role using Bandit selection.
+    # def get_evolved_prompt_for_role(
+    #     self,
+    #     role: str,
+    #     default_prompt: str = None,
+    #     domain: str = None,
+    # ) -> Tuple[str, Any]:
+    #     """
+    #     Get an evolved prompt for an agent role using Bandit selection.
+    #     
+    #     The prompt evolution system uses Thompson Sampling / UCB to balance
+    #     exploration and exploitation of prompt variants.
+    #     
+    #     Args:
+    #         role: Agent role name (e.g., "solver", "critic")
+    #         default_prompt: Default prompt if no variants exist
+    #         domain: Task domain (auto-detected from current goal if not provided)
+    #     
+    #     Returns:
+    #         Tuple of (evolved_prompt_text, PromptVariant object for tracking)
+    #     """
+    #     if not self.prompt_evolution:
+    #         return default_prompt or f"You are a {role} agent.", None
         
-        The prompt evolution system uses Thompson Sampling / UCB to balance
-        exploration and exploitation of prompt variants.
+    #     # Determine domain
+    #     if domain is None and self._current_goal:
+    #         domain = self._current_goal.domain
+    #     domain = domain or "general"
         
-        Args:
-            role: Agent role name (e.g., "solver", "critic")
-            default_prompt: Default prompt if no variants exist
-            domain: Task domain (auto-detected from current goal if not provided)
+    #     # Register default if needed
+    #     if default_prompt:
+    #         self.prompt_evolution.register_default_prompt(role, default_prompt, domain)
         
-        Returns:
-            Tuple of (evolved_prompt_text, PromptVariant object for tracking)
-        """
-        if not self.prompt_evolution:
-            return default_prompt or f"You are a {role} agent.", None
+    #     # Select best variant using Bandit algorithm
+    #     variant = self.prompt_evolution.select_prompt(role, domain)
         
-        # Determine domain
-        if domain is None and self._current_goal:
-            domain = self._current_goal.domain
-        domain = domain or "general"
+    #     # Inject insights if available
+    #     if hasattr(self, 'insights_cache') and self.insights_cache:
+    #         prompt = self.prompt_evolution.inject_insights(
+    #             variant.content, 
+    #             self.insights_cache[:5]
+    #         )
+    #     else:
+    #         prompt = variant.content
         
-        # Register default if needed
-        if default_prompt:
-            self.prompt_evolution.register_default_prompt(role, default_prompt, domain)
+    #     # Store current variant for later update
+    #     self._current_prompt_variants = getattr(self, '_current_prompt_variants', {})
+    #     self._current_prompt_variants[role] = variant
         
-        # Select best variant using Bandit algorithm
-        variant = self.prompt_evolution.select_prompt(role, domain)
-        
-        # Inject insights if available
-        if hasattr(self, 'insights_cache') and self.insights_cache:
-            prompt = self.prompt_evolution.inject_insights(
-                variant.content, 
-                self.insights_cache[:5]
-            )
-        else:
-            prompt = variant.content
-        
-        # Store current variant for later update
-        self._current_prompt_variants = getattr(self, '_current_prompt_variants', {})
-        self._current_prompt_variants[role] = variant
-        
-        return prompt, variant
+    #     return prompt, variant
     
-    def update_prompt_feedback(
-        self,
-        role: str,
-        success: bool,
-        failure_reason: str = None,
-        tokens_used: int = 0,
-    ):
-        """
-        Update prompt variant statistics after task execution.
+    # def update_prompt_feedback(
+    #     self,
+    #     role: str,
+    #     success: bool,
+    #     failure_reason: str = None,
+    #     tokens_used: int = 0,
+    # ):
+    #     """
+    #     Update prompt variant statistics after task execution.
+    #     
+    #     This feedback is used to:
+    #     1. Update Bandit statistics (success/failure counts)
+    #     2. Collect failure patterns for LLM synthesis
+    #     3. Trigger evolution when enough data is collected
+    #     
+    #     Args:
+    #         role: Agent role
+    #         success: Whether the task succeeded
+    #         failure_reason: Reason for failure (helps LLM synthesize better prompts)
+    #         tokens_used: Number of tokens used (for efficiency tracking)
+    #     """
+    #     if not self.prompt_evolution:
+    #         return
         
-        This feedback is used to:
-        1. Update Bandit statistics (success/failure counts)
-        2. Collect failure patterns for LLM synthesis
-        3. Trigger evolution when enough data is collected
+    #     variants = getattr(self, '_current_prompt_variants', {})
+    #     variant = variants.get(role)
         
-        Args:
-            role: Agent role
-            success: Whether the task succeeded
-            failure_reason: Reason for failure (helps LLM synthesize better prompts)
-            tokens_used: Number of tokens used (for efficiency tracking)
-        """
-        if not self.prompt_evolution:
-            return
-        
-        variants = getattr(self, '_current_prompt_variants', {})
-        variant = variants.get(role)
-        
-        if variant:
-            self.prompt_evolution.update_stats(
-                role=role,
-                variant=variant,
-                success=success,
-                tokens_used=tokens_used,
-                failure_reason=failure_reason,
-            )
+    #     if variant:
+    #         self.prompt_evolution.update_stats(
+    #             role=role,
+    #             variant=variant,
+    #             success=success,
+    #             tokens_used=tokens_used,
+    #             failure_reason=failure_reason,
+    #         )
     
-    def trigger_prompt_evolution(
-        self,
-        role: str,
-        domain: str = None,
-        insights: List[str] = None,
-    ) -> Optional[Any]:
-        """
-        Manually trigger prompt evolution for a role.
+    # def trigger_prompt_evolution(
+    #     self,
+    #     role: str,
+    #     domain: str = None,
+    #     insights: List[str] = None,
+    # ) -> Optional[Any]:
+    #     """
+    #     Manually trigger prompt evolution for a role.
+    #     
+    #     Usually evolution is triggered automatically, but this allows
+    #     manual triggering when you have new insights.
+    #     
+    #     Args:
+    #         role: Agent role
+    #         domain: Task domain
+    #         insights: New insights to incorporate
+    #     
+    #     Returns:
+    #         New PromptVariant if evolution succeeded
+    #     """
+    #     if not self.prompt_evolution:
+    #         return None
         
-        Usually evolution is triggered automatically, but this allows
-        manual triggering when you have new insights.
+    #     domain = domain or "general"
+    #     insights = insights or []
         
-        Args:
-            role: Agent role
-            domain: Task domain
-            insights: New insights to incorporate
-        
-        Returns:
-            New PromptVariant if evolution succeeded
-        """
-        if not self.prompt_evolution:
-            return None
-        
-        domain = domain or "general"
-        insights = insights or []
-        
-        return self.prompt_evolution.evolve_prompt(role, domain, insights)
+    #     return self.prompt_evolution.evolve_prompt(role, domain, insights)
     
-    def get_prompt_evolution_stats(self, role: str = None) -> Dict[str, Any]:
-        """
-        Get prompt evolution statistics.
+    # def get_prompt_evolution_stats(self, role: str = None) -> Dict[str, Any]:
+    #     """
+    #     Get prompt evolution statistics.
+    #     
+    #     Returns information about:
+    #     - Number of variants per role
+    #     - Success rates
+    #     - Evolution history
+    #     """
+    #     if not self.prompt_evolution:
+    #         return {"status": "disabled"}
         
-        Returns information about:
-        - Number of variants per role
-        - Success rates
-        - Evolution history
-        """
-        if not self.prompt_evolution:
-            return {"status": "disabled"}
+    #     if role:
+    #         return self.prompt_evolution.get_stats(role)
         
-        if role:
-            return self.prompt_evolution.get_stats(role)
+    #     # Get stats for all roles
+    #     all_stats = {}
+    #     for r in self.prompt_evolution.variants.keys():
+    #         for domain in self.prompt_evolution.variants[r].keys():
+    #             all_stats[f"{r}_{domain}"] = self.prompt_evolution.get_stats(r, domain)
         
-        # Get stats for all roles
-        all_stats = {}
-        for r in self.prompt_evolution.variants.keys():
-            for domain in self.prompt_evolution.variants[r].keys():
-                all_stats[f"{r}_{domain}"] = self.prompt_evolution.get_stats(r, domain)
-        
-        return all_stats
+    #     return all_stats
     
     # ================================ Memory Saving ================================
     
@@ -664,14 +664,10 @@ def create_goal_rl_memory(
         Configured GoalRLMemory instance
     """
     config = GoalRLMemoryConfig(
-        # G-Memory++ features
         enable_goal_module=enable_all_features,
-        enable_prompt_evolution=False,
-        enable_gcn_retriever=False,
+        # enable_prompt_evolution=False,
         enable_skill_miner=enable_all_features,
-        enable_goal_reinforcement=False,  # Replaced by Goal RL
         
-        # Goal RL features
         enable_goal_rl=True,
         rl_buffer_capacity=kwargs.get('buffer_capacity', 10000),
         rl_her_ratio=kwargs.get('her_ratio', 0.8),

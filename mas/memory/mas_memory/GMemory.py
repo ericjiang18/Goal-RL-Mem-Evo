@@ -197,49 +197,14 @@ class GMemory(MASMemoryBase):
     ) -> tuple[list, list, list]: 
         """Access the memory and return the results.
 
-        Args:
-            query_task (str): The task to query.
-            successful_topk (int, optional): Number of successful cases to retrieve. Defaults to 2.
-            failed_topk (int, optional): Number of failed cases to retrieve. Defaults to 1.
-            insight_topk (int, optional): Number of insights to retrieve. Defaults to 10.
-            threshold (float, optional): Similarity threshold for retrieving cases. Defaults to 0.3.
-
-        Returns:
-            tuple[list, list, list]: A tuple containing successful cases, failed cases, and insights.
+        Uses embedding similarity + graph hop distance from _retrieve_memory_raw
+        directly, avoiding extra LLM calls for relevance scoring.
         """
+        successful, failed, insights = self._retrieve_memory_raw(
+            query_task, successful_topk, failed_topk, insight_topk, threshold)
         
-        # retrieve raw tasks
-        successful_task_trajectories: list[MASMessage]
-        failed_task_trajectories: list[MASMessage]
-        insights: list[str]
-        successful_task_trajectories, failed_task_trajectories, insights = self._retrieve_memory_raw(
-            query_task, 2*successful_topk, 2*failed_topk, 2*insight_topk, threshold)
-        
-        # retrieve tasks based on task relevance
-        importance_score: list[float] = []
-        for success_task in successful_task_trajectories:
-            prompt: str = GMemoryPrompts.generative_task_user_prompt.format(
-                trajectory=success_task.task_description + '\n' + success_task.task_trajectory,
-                query_scenario=query_task
-            )
-            response: str = self.llm_model(messages=[Message('system', GMemoryPrompts.generative_task_system_prompt), 
-                                                     Message('user', prompt)])
-            score = int(re.search(r'\d+', response).group()) if re.search(r'\d+', response) else 0
-            importance_score.append(score)
-        
-        sorted_success_tasks = [task for _, task in sorted(zip(importance_score, successful_task_trajectories), 
-                                                           key=lambda x: x[0], reverse=True)]
-        top_success_task_trajectories = sorted_success_tasks[:successful_topk]
-        top_success_task_trajectories = successful_task_trajectories[:successful_topk]
-        
-        # directly get failed tasks
-        top_fail_task_trajectories = failed_task_trajectories[:failed_topk]
-        
-        # directlt get insights
-        top_k_insights = insights[:insight_topk]
-        self.insights_cache = top_k_insights
-
-        return top_success_task_trajectories, top_fail_task_trajectories, top_k_insights
+        self.insights_cache = insights[:insight_topk]
+        return successful[:successful_topk], failed[:failed_topk], self.insights_cache
 
 
     def _extract_mas_message(self, mas_message: MASMessage) -> MASMessage:

@@ -2,6 +2,8 @@
 Prompt Evolution Module for G-Memory++
 Manages and evolves prompts for each agent role based on success/failure feedback.
 Uses bandit-style selection and LLM-based synthesis for prompt improvement.
+
+NOTE: This module is currently DISABLED by default in GMemoryPlusConfig.
 """
 
 import os

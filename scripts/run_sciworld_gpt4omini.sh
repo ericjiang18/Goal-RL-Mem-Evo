@@ -2,7 +2,7 @@
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate GMemory
 
-cd /local3/ericjiang/AgentMemory-new
+cd /local3/ericjiang/AgentMemory-new_organized
 
 # OpenAI API config for GPT-4o-mini
 export OPENAI_API_BASE="${OPENAI_API_BASE:-https://api.openai.com/v1}"

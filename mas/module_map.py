@@ -14,17 +14,10 @@ def module_map(
     }
     mas_memory_map = {
         'empty': MASMemoryBase,
-        'voyager': VoyagerMASMemory,
-        'memorybank': MemoryBankMASMemory,
-        'chatdev': ChatDevMASMemory,
-        'generative': GenerativeMASMemory,
-        'metagpt': MetaGPTMASMemory,
         'g-memory': GMemory,
-        # G-Memory++ with all enhancements
         'g-memory-plus': GMemoryPlus,
         'gmemory-plus': GMemoryPlus,
         'gm+': GMemoryPlus,
-        # Goal RL enhanced memory
         'goal-rl': GoalRLMemory,
         'goal-rl-memory': GoalRLMemory,
         'grl': GoalRLMemory,

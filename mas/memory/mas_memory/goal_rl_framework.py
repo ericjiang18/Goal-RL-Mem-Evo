@@ -47,86 +47,6 @@ class ReplayStrategy(Enum):
     RANDOM = "random"      # Random achieved goals from buffer
 
 
-# ================================ Goal RL Prompts ================================
-
-GOAL_ACHIEVEMENT_CHECK_PROMPT = """Determine if the goal has been achieved based on the current state.
-
-## Goal:
-{goal}
-
-## Current State:
-{state}
-
-## Recent Actions:
-{actions}
-
-Has the goal been achieved? Consider partial achievements.
-
-Respond with:
-ACHIEVED: [YES/NO/PARTIAL]
-CONFIDENCE: [0.0-1.0]
-ACHIEVED_SUBGOALS: [list of achieved subgoals if any]
-REMAINING: [what remains to be done]
-"""
-
-GOAL_DISTANCE_PROMPT = """Estimate how close the current state is to achieving the goal.
-
-## Goal:
-{goal}
-
-## Current State:
-{state}
-
-Rate the distance to goal on a scale of 0-10 where:
-- 0: Goal achieved
-- 5: Halfway there
-- 10: Just started / very far
-
-Respond with just a number:
-"""
-
-POLICY_IMPROVEMENT_PROMPT = """Given the following successful and failed trajectories for similar goals, 
-extract key action patterns and decision rules.
-
-## Goal Type: {goal_type}
-
-## Successful Trajectories:
-{success_trajectories}
-
-## Failed Trajectories:
-{failed_trajectories}
-
-## Analysis:
-1. What actions led to success?
-2. What actions led to failure?
-3. What decision rules should be followed?
-
-Provide actionable guidelines:
-"""
-
-INTRINSIC_REWARD_PROMPT = """Evaluate the novelty and information gain of this state transition.
-
-## Previous State:
-{prev_state}
-
-## Action Taken:
-{action}
-
-## New State:
-{new_state}
-
-## Goal:
-{goal}
-
-Rate the following (0-10):
-1. State novelty (how different from expected/seen states)
-2. Information gain (how much was learned)
-3. Goal relevance (how related to goal achievement)
-
-Format: NOVELTY: X, INFO_GAIN: Y, RELEVANCE: Z
-"""
-
-
 # ================================ Data Classes ================================
 
 @dataclass
@@ -293,24 +213,11 @@ class GoalConditionedReplayBuffer:
         self._extract_achieved_goals(episode)
     
     def _add_experience(self, exp: Experience):
-        """Add single experience to buffer."""
         idx = len(self.buffer) % self.capacity
-        
-        # Compute embedding if function available
-        if self.embedding_func and exp.state_embedding is None:
-            exp.state_embedding = self.embedding_func.embed_query(exp.state)
-        if self.embedding_func and exp.goal_embedding is None:
-            exp.goal_embedding = self.embedding_func.embed_query(exp.goal.raw_task)
-        
         self.buffer.append(exp)
-        
-        # Index by goal type
         goal_type = exp.goal.verb if exp.goal else "unknown"
         self.goal_index[goal_type].append(idx)
-        
-        # Set initial priority
         self.priorities[idx] = self.max_priority
-        
         self.total_added += 1
     
     def _extract_achieved_goals(self, episode: Episode):
@@ -462,14 +369,7 @@ class GoalConditionedReplayBuffer:
 # ================================ Goal-conditioned Value Function ================================
 
 class GoalConditionedValueFunction:
-    """
-    Learns Q(s, a, g) - the value of taking action a in state s to achieve goal g.
-    
-    Uses a combination of:
-    - Tabular Q-learning for discrete state/action patterns
-    - Embedding-based similarity for generalization
-    - LLM-based value estimation for novel situations
-    """
+    """Tabular Q(s, a, g) with pattern-based generalization."""
     
     def __init__(
         self,
@@ -485,43 +385,19 @@ class GoalConditionedValueFunction:
         self.discount_factor = discount_factor
         self.working_dir = working_dir
         
-        # Q-table: (goal_type, state_pattern, action) -> GoalValueEntry
         self.q_table: Dict[Tuple[str, str, str], GoalValueEntry] = {}
-        
-        # Embedding cache for similarity-based lookup
-        self.state_embeddings: Dict[str, np.ndarray] = {}
-        self.action_embeddings: Dict[str, np.ndarray] = {}
-        
-        # Statistics
         self.update_count = 0
         
         self._load()
     
-    def get_q_value(
-        self,
-        state: str,
-        action: str,
-        goal: StructuredGoal,
-    ) -> float:
-        """
-        Get Q-value for state-action-goal triple.
-        Uses similarity-based lookup for generalization.
-        """
+    def get_q_value(self, state: str, action: str, goal: StructuredGoal) -> float:
         goal_type = goal.verb
         state_pattern = self._extract_state_pattern(state)
         action_pattern = self._extract_action_pattern(action)
         
         key = (goal_type, state_pattern, action_pattern)
-        
         if key in self.q_table:
             return self.q_table[key].q_value
-        
-        # Try similarity-based lookup
-        similar_value = self._find_similar_entry(state, action, goal)
-        if similar_value is not None:
-            return similar_value
-        
-        # Default neutral value
         return 0.0
     
     def update_q_value(
@@ -649,46 +525,6 @@ class GoalConditionedValueFunction:
         if parts:
             return parts[0]  # Just the action verb
         return pattern
-    
-    def _find_similar_entry(
-        self,
-        state: str,
-        action: str,
-        goal: StructuredGoal,
-        threshold: float = 0.7,
-    ) -> Optional[float]:
-        """Find similar entry using embeddings."""
-        if not self.embedding_func:
-            return None
-        
-        goal_type = goal.verb
-        
-        # Compute embeddings
-        state_emb = self.embedding_func.embed_query(state)
-        
-        best_similarity = 0.0
-        best_value = None
-        
-        for key, entry in self.q_table.items():
-            if key[0] != goal_type:
-                continue
-            
-            # Check state similarity
-            if key[1] in self.state_embeddings:
-                cached_emb = self.state_embeddings[key[1]]
-            else:
-                cached_emb = self.embedding_func.embed_query(key[1])
-                self.state_embeddings[key[1]] = cached_emb
-            
-            similarity = np.dot(state_emb, cached_emb) / (
-                np.linalg.norm(state_emb) * np.linalg.norm(cached_emb) + 1e-8
-            )
-            
-            if similarity > threshold and similarity > best_similarity:
-                best_similarity = similarity
-                best_value = entry.q_value
-        
-        return best_value
     
     def _get_known_actions(self, goal_type: str) -> List[str]:
         """Get known actions for a goal type."""
@@ -961,17 +797,11 @@ class IntrinsicMotivationModule:
         info_gain_weight: float = 0.2,
         relevance_weight: float = 0.5,
     ):
-        self.llm_model = llm_model
-        self.embedding_func = embedding_func
         self.novelty_weight = novelty_weight
         self.info_gain_weight = info_gain_weight
         self.relevance_weight = relevance_weight
         
-        # State history for novelty computation
         self.state_history: deque = deque(maxlen=1000)
-        self.state_embeddings: List[np.ndarray] = []
-        
-        # Action history
         self.action_counts: Dict[str, int] = defaultdict(int)
     
     def compute_intrinsic_reward(
@@ -999,33 +829,9 @@ class IntrinsicMotivationModule:
         return intrinsic_reward
     
     def _compute_novelty(self, state: str) -> float:
-        """Compute state novelty (0-1)."""
-        if not self.embedding_func or not self.state_embeddings:
-            # Fallback: simple string matching
-            similar_count = sum(
-                1 for s in self.state_history if s == state
-            )
-            return 1.0 / (1.0 + similar_count)
-        
-        # Embedding-based novelty
-        state_emb = self.embedding_func.embed_query(state)
-        
-        if not self.state_embeddings:
-            self.state_embeddings.append(state_emb)
-            return 1.0
-        
-        # Find max similarity to existing states
-        max_sim = 0.0
-        for emb in self.state_embeddings[-100:]:  # Recent states
-            sim = np.dot(state_emb, emb) / (
-                np.linalg.norm(state_emb) * np.linalg.norm(emb) + 1e-8
-            )
-            max_sim = max(max_sim, sim)
-        
-        self.state_embeddings.append(state_emb)
-        
-        # Novelty is inverse of max similarity
-        return 1.0 - max_sim
+        """Compute state novelty via string matching (no embedding overhead)."""
+        similar_count = sum(1 for s in self.state_history if s == state)
+        return 1.0 / (1.0 + similar_count)
     
     def _compute_info_gain(
         self,
@@ -1074,122 +880,6 @@ class IntrinsicMotivationModule:
         # UCB-style bonus
         bonus = np.sqrt(2 * np.log(total) / (count + 1))
         return min(bonus, 1.0)
-
-
-# ================================ Goal Achievement Detector ================================
-
-class GoalAchievementDetector:
-    """
-    Detects when goals or subgoals are achieved.
-    Uses LLM for complex goal checking.
-    """
-    
-    def __init__(self, llm_model: LLMCallable):
-        self.llm_model = llm_model
-        
-        # Cache recent checks
-        self.check_cache: Dict[str, Tuple[bool, float]] = {}
-    
-    def check_achievement(
-        self,
-        goal: StructuredGoal,
-        current_state: str,
-        recent_actions: List[str] = None,
-    ) -> Tuple[bool, float, List[str]]:
-        """
-        Check if goal is achieved.
-        
-        Returns:
-            Tuple of (achieved, confidence, achieved_subgoals)
-        """
-        # Create cache key
-        cache_key = f"{goal.raw_task[:50]}_{current_state[:50]}"
-        if cache_key in self.check_cache:
-            achieved, conf = self.check_cache[cache_key]
-            return achieved, conf, []
-        
-        # LLM-based check
-        actions_str = "\n".join(recent_actions[-5:]) if recent_actions else "None"
-        
-        try:
-            response = self.llm_model(
-                messages=[
-                    Message("system", "You are an expert at evaluating task completion."),
-                    Message("user", GOAL_ACHIEVEMENT_CHECK_PROMPT.format(
-                        goal=goal.to_str(),
-                        state=current_state[:1000],
-                        actions=actions_str,
-                    ))
-                ],
-                temperature=0.1,
-                max_tokens=200,
-            )
-            
-            achieved, confidence, subgoals = self._parse_response(response)
-            
-            # Cache result
-            self.check_cache[cache_key] = (achieved, confidence)
-            
-            return achieved, confidence, subgoals
-        
-        except Exception as e:
-            print(f"Achievement check failed: {e}")
-            return False, 0.0, []
-    
-    def _parse_response(self, response: str) -> Tuple[bool, float, List[str]]:
-        """Parse LLM response."""
-        import re
-        
-        achieved = False
-        confidence = 0.5
-        subgoals = []
-        
-        # Parse ACHIEVED
-        ach_match = re.search(r'ACHIEVED:\s*(YES|NO|PARTIAL)', response, re.IGNORECASE)
-        if ach_match:
-            status = ach_match.group(1).upper()
-            achieved = status == "YES"
-        
-        # Parse CONFIDENCE
-        conf_match = re.search(r'CONFIDENCE:\s*([\d.]+)', response)
-        if conf_match:
-            confidence = float(conf_match.group(1))
-        
-        # Parse ACHIEVED_SUBGOALS
-        sub_match = re.search(r'ACHIEVED_SUBGOALS:\s*\[([^\]]+)\]', response)
-        if sub_match:
-            subgoals = [s.strip() for s in sub_match.group(1).split(',')]
-        
-        return achieved, confidence, subgoals
-    
-    def estimate_goal_distance(
-        self,
-        goal: StructuredGoal,
-        current_state: str,
-    ) -> float:
-        """Estimate distance to goal (0-1, lower is closer)."""
-        try:
-            response = self.llm_model(
-                messages=[
-                    Message("system", "Rate how close the state is to the goal."),
-                    Message("user", GOAL_DISTANCE_PROMPT.format(
-                        goal=goal.to_str(),
-                        state=current_state[:500],
-                    ))
-                ],
-                temperature=0.1,
-                max_tokens=10,
-            )
-            
-            import re
-            match = re.search(r'(\d+)', response)
-            if match:
-                distance = int(match.group(1))
-                return distance / 10.0
-        except:
-            pass
-        
-        return 0.5  # Default middle distance
 
 
 # ================================ Main Goal RL Framework ================================
@@ -1275,16 +965,12 @@ class GoalRLFramework:
         
         if self.config.enable_intrinsic:
             self.intrinsic_module = IntrinsicMotivationModule(
-                llm_model=llm_model,
-                embedding_func=embedding_func,
                 novelty_weight=self.config.novelty_weight,
                 info_gain_weight=self.config.info_gain_weight,
                 relevance_weight=self.config.relevance_weight,
             )
         else:
             self.intrinsic_module = None
-        
-        self.achievement_detector = GoalAchievementDetector(llm_model)
         
         # Current episode tracking
         self.current_episode: Optional[Episode] = None
