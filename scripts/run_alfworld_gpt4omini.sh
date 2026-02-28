@@ -8,6 +8,9 @@ cd /local3/ericjiang/AgentMemory-new_organized
 export OPENAI_API_BASE="${OPENAI_API_BASE:-https://api.openai.com/v1}"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-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}"
 
+# Clear previous memory
+rm -rf .db
+
 python3 tasks/run.py \
     --task alfworld \
     --reasoning io \
